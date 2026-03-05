@@ -1,8 +1,8 @@
 {
-  "name": "personal-site",
+  "name": "personal-pro",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://zhoujie2001.github.io/personal-site",
+  "homepage": "https://zhoujie2001.github.io/personal-pro",
   "type": "module",
   "scripts": {
     "dev": "vite",

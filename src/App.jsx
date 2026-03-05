@@ -1,7 +1,8 @@
 // import { useState } from "react";
-import { Mail, ExternalLink } from "lucide-react";
+import { Mail, ExternalLink, Music, ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { useEffect, useRef } from "react"; 
 import {useState } from "react";
+import { playlists, getRandomSongs } from "./playlistData";
 
 export default function App() {
     const sliderRef = useRef(null);
@@ -81,6 +82,7 @@ export default function App() {
           <a href="#reading">Reading</a>
           <a href="#travel">Travel</a>
           <a href="#photography">Photography</a>
+          <a href="#playlist">Playlist</a>
           <a href="#links">Links</a>
         </nav>
       </aside>
@@ -214,6 +216,65 @@ export default function App() {
               </div>
             </div>
           )}
+        </section>
+
+        <section id="playlist">
+          <h2>Playlist</h2>
+          <p>
+            一些我喜欢的歌单，点击卡片可以查看完整歌单。
+          </p>
+          
+          <div className="playlist-container">
+            {playlists.map((playlist, index) => {
+              const randomSongs = getRandomSongs(playlist.songs, 5);
+              return (
+                <div 
+                  key={playlist.id} 
+                  className="playlist-card"
+                  style={{ animationDelay: `${index * 0.2}s` }}
+                >
+                  <div className="playlist-header">
+                    <Music size={20} />
+                    <h3>{playlist.name}</h3>
+                    <a 
+                      href={playlist.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="playlist-link"
+                    >
+                      <ExternalLinkIcon size={16} />
+                    </a>
+                  </div>
+                  
+                  <div className="playlist-songs">
+                    {randomSongs.map((song, songIndex) => (
+                      <div key={song.id} className="song-item">
+                        <div className="song-cover">
+                          <img src={song.cover} alt={song.title} />
+                        </div>
+                        <div className="song-info">
+                          <div className="song-title">{song.title}</div>
+                          <div className="song-artist">{song.artist}</div>
+                          <div className="song-album">{song.album}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="playlist-footer">
+                    <a 
+                      href={playlist.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="view-full-btn"
+                    >
+                      查看完整歌单
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section id="links">
