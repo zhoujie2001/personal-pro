@@ -1,17 +1,52 @@
-# React + Vite
+# Personal Pro - 个人网站
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-This is my project.
+这是一个包含歌单板块的个人网站项目，基于React + Vite构建。
 
-Currently, two official plugins are available:
+## 功能特点
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **关于我**：个人介绍
+- **阅读**：喜欢的书籍列表
+- **旅行**：旅行视频展示
+- **摄影**：摄影作品展示
+- **歌单**：三个浮动卡片歌单，每个歌单随机显示5首歌曲
+- **链接**：社交媒体链接
 
-## React Compiler
+## 歌单板块
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+歌单板块包含三个浮动卡片：
+1. **光和枯树** - 光与树的主题歌单
+2. **雨和屋檐** - 雨与屋檐的主题歌单  
+3. **风和草地** - 风与草地的主题歌单
 
-## Expanding the ESLint configuration
+每个歌单卡片具有：
+- 上下浮动动画效果（错开时间）
+- 随机显示5首歌曲预览
+- 歌曲信息包括：专辑封面、歌名、歌手、专辑
+- 点击查看完整歌单链接
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 技术栈
+
+- React 19
+- Vite 8
+- Tailwind CSS
+- Lucide React图标库
+
+## 本地开发
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 部署到GitHub Pages
+npm run deploy
+```
+
+## 部署
+
+项目已配置GitHub Pages部署，访问地址：https://zhoujie2001.github.io/personal-pro/
