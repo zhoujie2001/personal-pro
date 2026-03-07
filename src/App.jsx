@@ -1,8 +1,6 @@
-// import { useState } from "react";
-import { Mail, ExternalLink, Music, ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { useEffect, useRef } from "react"; 
-import {useState } from "react";
-import { playlists, getRandomSongs } from "./playlistData";
+import { useState } from "react";
+import MusicPlayer from "./MusicPlayer";
 
 export default function App() {
     const sliderRef = useRef(null);
@@ -219,88 +217,29 @@ export default function App() {
         </section>
 
         <section id="playlist">
-          <h2>Playlist</h2>
-          <p>
-            一些我喜欢的歌单，点击卡片可以查看完整歌单。
-          </p>
-          
-          <div className="playlist-container">
-            {playlists.map((playlist, index) => {
-              const randomSongs = getRandomSongs(playlist.songs, 5);
-              return (
-                <div 
-                  key={playlist.id} 
-                  className="playlist-card"
-                  style={{ animationDelay: `${index * 0.2}s` }}
-                >
-                  <div className="playlist-header">
-                    <Music size={20} />
-                    <h3>{playlist.name}</h3>
-                    <a 
-                      href={playlist.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="playlist-link"
-                    >
-                      <ExternalLinkIcon size={16} />
-                    </a>
-                  </div>
-                  
-                  <div className="playlist-songs">
-                    {randomSongs.map((song, songIndex) => (
-                      <div key={song.id} className="song-item">
-                        <div className="song-cover">
-                          <img src={song.cover} alt={song.title} />
-                        </div>
-                        <div className="song-info">
-                          <div className="song-title">{song.title}</div>
-                          <div className="song-artist">{song.artist}</div>
-                          <div className="song-album">{song.album}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="playlist-footer">
-                    <a 
-                      href={playlist.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="view-full-btn"
-                    >
-                      查看完整歌单
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <MusicPlayer />
         </section>
 
         <section id="links">
           <h2>Links</h2>
           <ul className="links">
             <li>
-              <Mail size={16} />
-              <a href="mailto:zhou.1900@jiyunhudong.com">
+              📧 <a href="mailto:zhou.1900@jiyunhudong.com">
                 zhou.1900@jiyunhudong.com
               </a>
             </li>
             <li>
-              <ExternalLink size={16} />
-              <a href="https://v.douyin.com/VWYUIrtxV2Y/" target="_blank">
+              🔗 <a href="https://v.douyin.com/VWYUIrtxV2Y/" target="_blank">
                 Douyin
               </a>
             </li>
             <li>
-              <ExternalLink size={16} />
-              <a href="https://www.douban.com/people/269994208/" target="_blank">
+              🔗 <a href="https://www.douban.com/people/269994208/" target="_blank">
                 Douban
               </a>
             </li>
             <li>
-              <ExternalLink size={16} />
-              <a href="https://xhslink.com/m/39qXQZqVMys" target="_blank">
+              🔗 <a href="https://xhslink.com/m/39qXQZqVMys" target="_blank">
                 Xiaohongshu
               </a>
             </li>

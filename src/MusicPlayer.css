@@ -1,0 +1,272 @@
+/* 音乐播放器样式 - 三个卡片并列 + 浮动效果 */
+
+/* 三个卡片容器 */
+.music-cards-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin: 40px 0;
+    flex-wrap: wrap;
+}
+
+/* 卡片样式 */
+.music-card {
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    transition: all 0.5s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+/* 卡片浮动动画 */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.music-card-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.music-card:nth-child(2) {
+    animation-delay: 0.5s;
+}
+
+.music-card:nth-child(3) {
+    animation-delay: 1s;
+}
+
+.music-card-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+.music-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.music-card p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* 歌单内容 */
+.music-playlist-songs {
+    width: 100%;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.music-song-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+
+.music-song-item:last-child {
+    border-bottom: none;
+}
+
+.music-song-cover {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.music-song-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.music-song-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-song-artist {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-song-album {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-card-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-top: auto;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.music-card-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .music-cards-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .music-card {
+        min-height: auto;
+        width: 100%;
+        max-width: 400px;
+    }
+}
+
+/* 卡片悬停效果 */
+.music-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+}
+
+.music-card:hover .music-card-float {
+    animation-play-state: paused;
+}
+
+/* 按钮点击效果 */
+.music-card-btn:active {
+    transform: scale(0.95);
+}
+
+/* 状态指示器 */
+.music-status {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+/* 音乐播放器标题样式 */
+.music-player-title {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.music-player-title h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.music-player-title p {
+    color: #666;
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* 渐变背景效果 */
+.music-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px 15px 0 0;
+}
+
+/* 卡片内部阴影 */
+.music-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 15px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+    pointer-events: none;
+}
+
+/* 卡片图标动画 */
+.music-card-icon {
+    transition: transform 0.3s ease;
+}
+
+.music-card:hover .music-card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* 歌曲封面颜色 */
+.music-song-cover-color-0 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.music-song-cover-color-1 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.music-song-cover-color-2 {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.music-song-cover-color-3 {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.music-song-cover-color-4 {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
