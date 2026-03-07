@@ -129,3 +129,6 @@ Thumbs.db
 memory/
 *.session
 *.log
+
+# Vite build output
+dist/

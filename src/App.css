@@ -1,0 +1,293 @@
+/* 简化版App.css - 只包含歌单卡片样式 */
+
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-20px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateY(-25px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-15px) rotate(-0.5deg);
+  }
+}
+
+/* 基础布局 */
+.layout {
+  display: flex;
+}
+
+.sidebar {
+  position: fixed;
+  left: 60px;
+  top: 80px;
+  width: 200px;
+}
+
+.content {
+  width: 100%;
+  margin: 0 auto;
+  padding: 80px 20px;
+  overflow: hidden;
+}
+
+@media (min-width: 1000px) {
+  .content {
+    margin-left: 500px;
+  }
+}
+
+/* 标题样式 */
+h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+h2 {
+  margin-top: 60px;
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+/* 歌单容器 */
+.playlist-container {
+  display: flex;
+  gap: 30px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* 歌单卡片 */
+.playlist-card {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s ease;
+  animation: float 4s ease-in-out infinite;
+  border: 1px solid #f0f0f0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 错开动画 */
+.playlist-card:nth-child(1) {
+  animation-delay: 0s;
+  animation-duration: 4s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.playlist-card:nth-child(2) {
+  animation-delay: 0.3s;
+  animation-duration: 4.2s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.playlist-card:nth-child(3) {
+  animation-delay: 0.6s;
+  animation-duration: 4.4s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.playlist-card:hover {
+  transform: translateY(-15px) scale(1.02);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  animation-play-state: paused;
+}
+
+/* 卡片内部样式 */
+.playlist-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.playlist-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+  flex: 1;
+}
+
+.playlist-link {
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.playlist-link:hover {
+  color: #222;
+}
+
+.playlist-songs {
+  margin-bottom: 20px;
+}
+
+.song-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f9f9f9;
+  transition: background-color 0.3s ease;
+}
+
+.song-item:hover {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 0 -10px;
+}
+
+.song-item:last-child {
+  border-bottom: none;
+}
+
+.song-cover {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.song-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.song-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-artist {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-album {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-footer {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.view-full-btn {
+  display: inline-block;
+  padding: 8px 20px;
+  background: #222;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.view-full-btn:hover {
+  background: #444;
+  transform: translateY(-2px);
+}
+
+/* 响应式设计 */
+@media (max-width: 999px) {
+  .playlist-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .playlist-card {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 767px) {
+  .layout {
+    display: block;
+  }
+  
+  .sidebar {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .content {
+    padding: 30px 15px;
+    margin-left: 0 !important;
+  }
+  
+  .playlist-card {
+    min-width: unset;
+    padding: 20px;
+  }
+  
+  .playlist-header h3 {
+    font-size: 16px;
+  }
+  
+  .song-cover {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .song-title {
+    font-size: 13px;
+  }
+  
+  .song-artist {
+    font-size: 11px;
+  }
+  
+  .song-album {
+    font-size: 10px;
+  }
+  
+  .view-full-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+}
