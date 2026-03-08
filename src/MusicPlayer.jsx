@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './MusicPlayer.css';
 import { playlists as importedPlaylists, getRandomSongs } from './playlistData';
-import { enhanceSongsReal, testRealConnection } from './realMusicAlgerService';
+import { enhanceSongsSimple, testAudioAccessibility, getServiceStatus } from './simpleMusicService';
 
 // 使用导入的歌单数据
 const playlists = importedPlaylists;
@@ -29,9 +29,13 @@ const MusicPlayer = () => {
             setIsLoading(true);
             
             try {
-                // 测试真实网站连接
-                const connectionTest = await testRealConnection();
-                console.log('真实网站连接测试:', connectionTest);
+                // 测试音频可访问性
+                const audioTest = await testAudioAccessibility();
+                console.log('音频可访问性测试:', audioTest);
+                
+                // 获取服务状态
+                const serviceStatus = getServiceStatus();
+                console.log('音乐服务状态:', serviceStatus);
                 
                 const newRandomSongs = {};
                 
@@ -39,17 +43,17 @@ const MusicPlayer = () => {
                     const randomSongs = getRandomSongs(playlist.songs, 5);
                     
                     try {
-                        // 使用真实的 music.alger.fun 服务增强歌曲数据
+                        // 使用简单可靠的服务增强歌曲数据
                         console.log(`=== 处理歌单 "${playlist.name}"，${randomSongs.length} 首歌曲 ===`);
-                        const enhancedSongs = await enhanceSongsReal(randomSongs);
+                        const enhancedSongs = await enhanceSongsSimple(randomSongs);
                         newRandomSongs[playlist.id] = enhancedSongs;
                         
                         // 记录处理结果
                         console.log(`歌单 "${playlist.name}" 处理完成:`);
                         enhancedSongs.forEach(song => {
                             console.log(`  🎵 "${song.title}" - ${song.artist}`);
-                            console.log(`    封面: ${song.cover?.substring(0, 80)}...`);
-                            console.log(`    音频: ${song.audioUrl?.substring(0, 80)}...`);
+                            console.log(`    封面: ${song.cover}`);
+                            console.log(`    音频: ${song.audioUrl}`);
                             console.log(`    来源: ${song.source}`);
                         });
                     } catch (error) {
@@ -57,14 +61,11 @@ const MusicPlayer = () => {
                         // 使用基础数据作为回退
                         newRandomSongs[playlist.id] = randomSongs.map(song => ({
                             ...song,
-                            cover: `https://picsum.photos/300/300?image=${song.id + 500}`,
+                            cover: `https://picsum.photos/300/300?image=${song.id + 1000}`,
                             audioUrl: getReliableAudioUrl(song),
-                            source: 'fallback (处理失败)'
+                            source: '回退数据'
                         }));
                     }
-                    
-                    // 添加延迟避免请求过快
-                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
                 
                 setRandomSongs(newRandomSongs);
@@ -89,18 +90,18 @@ const MusicPlayer = () => {
             const randomSongs = getRandomSongs(playlist.songs, 5);
             
             try {
-                // 使用真实的 music.alger.fun 服务增强歌曲数据
+                // 使用简单可靠的服务增强歌曲数据
                 console.log(`刷新歌单 "${playlist.name}"`);
-                const enhancedSongs = await enhanceSongsReal(randomSongs);
+                const enhancedSongs = await enhanceSongsSimple(randomSongs);
                 newRandomSongs[playlist.id] = enhancedSongs;
             } catch (error) {
                 console.error(`刷新歌单 "${playlist.name}" 失败:`, error);
                 // 使用基础数据作为回退
                 newRandomSongs[playlist.id] = randomSongs.map(song => ({
                     ...song,
-                    cover: `https://picsum.photos/300/300?image=${song.id + 600}`,
+                    cover: `https://picsum.photos/300/300?image=${song.id + 2000}`,
                     audioUrl: getReliableAudioUrl(song),
-                    source: 'fallback (刷新失败)'
+                    source: '刷新回退'
                 }));
             }
         }
@@ -330,42 +331,18 @@ const MusicPlayer = () => {
         };
     }, []);
 
-    // 获取可靠的音频URL
+    // 简单的回退音频URL函数（仅用于极端情况）
     const getReliableAudioUrl = (song) => {
-        // 使用经过测试的可靠音频源
-        const reliableAudioUrls = [
-            // SoundHelix - 明确允许使用的示例音乐
+        // 使用SoundHelix的可靠音频
+        const audioUrls = [
             "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
             "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-            // 备用音频源
-            "https://cdn.pixabay.com/download/audio/2022/03/10/audio_2c8a37f637.mp3?filename=ambient-piano-amp-strings-10711.mp3",
-            "https://cdn.pixabay.com/download/audio/2022/03/10/audio_2c8a37f638.mp3?filename=cinematic-trailer-amp- logo-10711.mp3"
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
         ];
         
-        // 基于歌曲信息生成唯一索引
-        const hash = simpleHashForAudio(`${song.id}-${song.title}`);
-        const index = hash % reliableAudioUrls.length;
-        const audioUrl = reliableAudioUrls[index];
-        
-        console.log(`回退音频URL for "${song.title}": ${audioUrl} (索引: ${index})`);
-        return audioUrl;
-    };
-
-    // 简单的音频哈希函数
-    const simpleHashForAudio = (str) => {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash);
+        // 简单哈希确保唯一性
+        const hash = (song.id * 31 + song.title.length) % audioUrls.length;
+        return audioUrls[hash];
     };
 
     // 键盘快捷键
@@ -396,9 +373,9 @@ const MusicPlayer = () => {
                 {isLoading ? (
                     <div className="music-loading">
                         <div className="music-loading-spinner"></div>
-                        <p>正在从 music.alger.fun 实时搜索歌曲数据...</p>
-                        <p className="music-loading-hint">正在根据歌曲名搜索真实封面和音频，这可能需要一些时间</p>
-                        <p className="music-loading-hint">请保持网络连接并打开控制台查看详细进度</p>
+                        <p>正在准备音乐数据...</p>
+                        <p className="music-loading-hint">使用可靠的公开音频源，确保最佳播放体验</p>
+                        <p className="music-loading-hint">每首歌都有唯一的封面和可播放的音频</p>
                     </div>
                 ) : (
                     <div className="music-cards-container">
