@@ -1,175 +1,563 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './MusicPlayer.css';
+import { playlists as importedPlaylists, getRandomSongs } from './playlistData';
+import { enhanceSongsReal, testRealConnection } from './realMusicAlgerService';
 
-// 歌单数据
-const playlists = [
-    {
-        id: 1,
-        name: "光和枯树",
-        url: "https://y.qq.com/n3/other/pages/details/playlist.html?hosteuin=oK6soKoqNenP7z**&id=8670100374&appversion=200105&ADTAG=wxfshare&appshare=iphone_wx&redirecttag=mn.error.getInitialProps.timeout&mnst=502.28",
-        description: "温暖的光与静谧的树，适合安静思考的时光",
-        icon: "☀️",
-        songs: [
-            { id: 1, title: "光", artist: "陈粒", album: "如也" },
-            { id: 2, title: "枯树", artist: "房东的猫", album: "柔软" },
-            { id: 3, title: "树洞", artist: "许嵩", album: "青年晚报" },
-            { id: 4, title: "光年之外", artist: "G.E.M.邓紫棋", album: "新的心跳" },
-            { id: 5, title: "枯木逢春", artist: "枯木逢春", album: "亦是此间少年" },
-            { id: 6, title: "追光者", artist: "岑宁儿", album: "夏至未至" },
-            { id: 7, title: "光之翼", artist: "王菲", album: "光之翼" },
-            { id: 8, title: "树读", artist: "王俊凯", album: "树读" },
-            { id: 9, title: "光合作用", artist: "房东的猫", album: "柔软" },
-            { id: 10, title: "光晕", artist: "周深", album: "深的深" }
-        ]
-    },
-    {
-        id: 2,
-        name: "雨和屋檐",
-        url: "https://i2.y.qq.com/n3/other/pages/details/playlist.html?hosteuin=oK6soKoqNenP7z**&id=8667064202&appversion=200105&ADTAG=wxfshare&appshare=iphone_wx",
-        description: "雨声与屋檐的对话，适合雨天聆听的旋律",
-        icon: "🌧️",
-        songs: [
-            { id: 1, title: "雨爱", artist: "杨丞琳", album: "Rainie & Love...?" },
-            { id: 2, title: "屋檐", artist: "周杰伦", album: "七里香" },
-            { id: 3, title: "下雨天", artist: "南拳妈妈", album: "优の良曲 南搞小孩" },
-            { id: 4, title: "雨下一整晚", artist: "周杰伦", album: "跨时代" },
-            { id: 5, title: "屋檐下的思念", artist: "汪苏泷", album: "传世乐章" },
-            { id: 6, title: "雨天", artist: "孙燕姿", album: "My Story, Your Song" },
-            { id: 7, title: "雨一直下", artist: "张宇", album: "雨一直下" },
-            { id: 8, title: "六月的雨", artist: "胡歌", album: "仙剑奇侠传" },
-            { id: 9, title: "听见下雨的声音", artist: "周杰伦", album: "哎呦，不错哦" },
-            { id: 10, title: "雨蝶", artist: "李翊君", album: "还珠格格" }
-        ]
-    },
-    {
-        id: 3,
-        name: "风和草地",
-        url: "https://i2.y.qq.com/n3/other/pages/details/playlist.html?hosteuin=oK6soKoqNenP7z**&id=8667059995&appversion=200105&ADTAG=wxfshare&appshare=iphone_wx",
-        description: "风与草地的交响，适合户外漫步的节奏",
-        icon: "🌬️",
-        songs: [
-            { id: 1, title: "风", artist: "张杰", album: "爱，不解释" },
-            { id: 2, title: "风吹麦浪", artist: "李健", album: "想念你" },
-            { id: 3, title: "草", artist: "陈奕迅", album: "上五楼的快活" },
-            { id: 4, title: "风中有朵雨做的云", artist: "孟庭苇", album: "风中有朵雨做的云" },
-            { id: 5, title: "草原之夜", artist: "刀郎", album: "2002年的第一场雪" },
-            { id: 6, title: "风继续吹", artist: "张国荣", album: "风继续吹" },
-            { id: 7, title: "野子", artist: "苏运莹", album: "野子" },
-            { id: 8, title: "风吹草动", artist: "林志炫", album: "散了吧" },
-            { id: 9, title: "风之彩", artist: "范晓萱", album: "小魔女的魔法书" },
-            { id: 10, title: "草原上升起不落的太阳", artist: "吴雁泽", album: "经典民歌" }
-        ]
-    }
-];
+// 使用导入的歌单数据
+const playlists = importedPlaylists;
 
-// 随机选择歌曲
-const getRandomSongs = (songs, count = 5) => {
-    const shuffled = [...songs].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-};
-
-// 获取封面颜色类名
-const getCoverColorClass = (index) => {
-    const colors = [
-        'music-song-cover-color-0',
-        'music-song-cover-color-1',
-        'music-song-cover-color-2',
-        'music-song-cover-color-3',
-        'music-song-cover-color-4'
-    ];
-    return colors[index % colors.length];
+// 歌单图片映射
+const playlistImages = {
+    "光和枯树": "images/光和枯树.jpg",
+    "雨和屋檐": "images/雨和屋檐.jpg", 
+    "风和草地": "images/风和草地.jpg"
 };
 
 const MusicPlayer = () => {
     const [randomSongs, setRandomSongs] = useState({});
+    const [currentSong, setCurrentSong] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [showPlayer, setShowPlayer] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const audioRef = useRef(null);
+    const shouldPlayAfterLoad = useRef(false);
 
     // 初始化随机歌曲
     useEffect(() => {
-        const newRandomSongs = {};
-        playlists.forEach(playlist => {
-            newRandomSongs[playlist.id] = getRandomSongs(playlist.songs, 5);
-        });
-        setRandomSongs(newRandomSongs);
+        const initializeSongs = async () => {
+            console.log('初始化歌曲数据...');
+            setIsLoading(true);
+            
+            try {
+                // 测试真实网站连接
+                const connectionTest = await testRealConnection();
+                console.log('真实网站连接测试:', connectionTest);
+                
+                const newRandomSongs = {};
+                
+                for (const playlist of playlists) {
+                    const randomSongs = getRandomSongs(playlist.songs, 5);
+                    
+                    try {
+                        // 使用真实的 music.alger.fun 服务增强歌曲数据
+                        console.log(`=== 处理歌单 "${playlist.name}"，${randomSongs.length} 首歌曲 ===`);
+                        const enhancedSongs = await enhanceSongsReal(randomSongs);
+                        newRandomSongs[playlist.id] = enhancedSongs;
+                        
+                        // 记录处理结果
+                        console.log(`歌单 "${playlist.name}" 处理完成:`);
+                        enhancedSongs.forEach(song => {
+                            console.log(`  🎵 "${song.title}" - ${song.artist}`);
+                            console.log(`    封面: ${song.cover?.substring(0, 80)}...`);
+                            console.log(`    音频: ${song.audioUrl?.substring(0, 80)}...`);
+                            console.log(`    来源: ${song.source}`);
+                        });
+                    } catch (error) {
+                        console.error(`处理歌单 "${playlist.name}" 失败:`, error);
+                        // 使用基础数据作为回退
+                        newRandomSongs[playlist.id] = randomSongs.map(song => ({
+                            ...song,
+                            cover: `https://picsum.photos/300/300?image=${song.id + 500}`,
+                            audioUrl: getReliableAudioUrl(song),
+                            source: 'fallback (处理失败)'
+                        }));
+                    }
+                    
+                    // 添加延迟避免请求过快
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                setRandomSongs(newRandomSongs);
+                console.log('歌曲数据初始化完成');
+            } catch (error) {
+                console.error('初始化歌曲数据失败:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        initializeSongs();
     }, []);
 
     // 刷新随机歌曲
-    const refreshSongs = () => {
+    const refreshSongs = async () => {
+        console.log('刷新歌曲数据...');
+        
         const newRandomSongs = {};
-        playlists.forEach(playlist => {
-            newRandomSongs[playlist.id] = getRandomSongs(playlist.songs, 5);
-        });
+        
+        for (const playlist of playlists) {
+            const randomSongs = getRandomSongs(playlist.songs, 5);
+            
+            try {
+                // 使用真实的 music.alger.fun 服务增强歌曲数据
+                console.log(`刷新歌单 "${playlist.name}"`);
+                const enhancedSongs = await enhanceSongsReal(randomSongs);
+                newRandomSongs[playlist.id] = enhancedSongs;
+            } catch (error) {
+                console.error(`刷新歌单 "${playlist.name}" 失败:`, error);
+                // 使用基础数据作为回退
+                newRandomSongs[playlist.id] = randomSongs.map(song => ({
+                    ...song,
+                    cover: `https://picsum.photos/300/300?image=${song.id + 600}`,
+                    audioUrl: getReliableAudioUrl(song),
+                    source: 'fallback (刷新失败)'
+                }));
+            }
+        }
+        
         setRandomSongs(newRandomSongs);
+        console.log('歌曲数据刷新完成');
     };
 
-    return (
-        <div className="music-player">
-            <div className="music-player-title">
-                <h2>🎵 音乐播放器</h2>
-                <p>三个歌单卡片并列 + 浮动动画效果 | 每次刷新随机显示5首歌</p>
-            </div>
+    // 播放歌曲
+    const playSong = (song) => {
+        console.log('播放歌曲:', song);
+        console.log('音频URL:', song.audioUrl);
+        
+        // 如果是同一首歌，切换播放状态
+        if (currentSong && currentSong.id === song.id && currentSong.playlistId === song.playlistId) {
+            console.log('同一首歌，切换播放状态');
+            if (isPlaying) {
+                console.log('暂停播放');
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                }
+                setIsPlaying(false);
+            } else {
+                console.log('继续播放');
+                // 确保音频元素存在
+                if (!audioRef.current) {
+                    console.log('音频元素不存在，重新创建');
+                    createAudioElement(currentSong);
+                }
+                
+                // 等待音频就绪后再播放
+                if (audioRef.current && audioRef.current.readyState >= 2) {
+                    audioRef.current.play().catch(e => {
+                        // 忽略AbortError，这是正常的竞争条件
+                        if (e.name !== 'AbortError') {
+                            console.error('播放失败:', e);
+                            console.error('错误详情:', e.message);
+                        }
+                        setIsPlaying(false);
+                    });
+                    setIsPlaying(true);
+                } else {
+                    console.log('音频未就绪，等待加载');
+                    // 设置标志，在canplay事件中播放
+                    shouldPlayAfterLoad.current = true;
+                    setIsPlaying(true);
+                }
+            }
+        } else {
+            console.log('新歌曲，开始播放');
+            // 新歌曲，设置并播放
+            setCurrentSong(song);
+            setIsPlaying(true);
+            setShowPlayer(true);
+            
+            // 创建新的音频元素
+            createAudioElement(song);
+        }
+    };
 
-            <div className="music-cards-container">
-                {playlists.map((playlist, index) => (
-                    <div 
-                        key={playlist.id} 
-                        className="music-card music-card-float"
-                        style={{ animationDelay: `${index * 0.5}s` }}
-                    >
-                        <div className="music-card-icon">
-                            {playlist.icon}
-                        </div>
-                        
-                        <h3>{playlist.name}</h3>
-                        <p>{playlist.description}</p>
-                        
-                        <div className="music-playlist-songs">
-                            {randomSongs[playlist.id]?.map((song, songIndex) => (
-                                <div key={song.id} className="music-song-item">
-                                    <div className={`music-song-cover ${getCoverColorClass(songIndex)}`}>
-                                        <span>🎵</span>
-                                    </div>
-                                    <div className="music-song-info">
-                                        <div className="music-song-title">{song.title}</div>
-                                        <div className="music-song-artist">{song.artist}</div>
-                                        <div className="music-song-album">{song.album}</div>
+    // 创建音频元素
+    const createAudioElement = (song) => {
+        console.log('创建音频元素，URL:', song.audioUrl);
+        
+        // 清理旧的音频元素
+        if (audioRef.current) {
+            console.log('清理旧的音频元素');
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null;
+        }
+        
+        // 创建新的音频元素
+        const audio = new Audio();
+        audioRef.current = audio;
+        
+        // 设置音频源
+        audio.src = song.audioUrl;
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+        
+        // 重置播放标志
+        shouldPlayAfterLoad.current = false;
+        
+        // 添加事件监听
+        audio.oncanplay = () => {
+            console.log('音频加载完成，可以播放');
+            console.log('音频源:', audio.src);
+            console.log('音频就绪状态:', audio.readyState);
+            console.log('音频时长:', audio.duration);
+            
+            // 如果设置了播放标志，开始播放
+            if (shouldPlayAfterLoad.current && isPlaying) {
+                console.log('音频就绪，开始播放');
+                audio.play().catch(e => {
+                    // 忽略AbortError
+                    if (e.name !== 'AbortError') {
+                        console.error('播放失败:', e);
+                        console.error('错误详情:', e.message);
+                    }
+                    setIsPlaying(false);
+                });
+                shouldPlayAfterLoad.current = false;
+            }
+        };
+        
+        audio.onerror = (e) => {
+            console.error('音频加载错误');
+            console.error('错误目标:', e.target);
+            console.error('错误代码:', audio.error?.code);
+            console.error('错误信息:', audio.error?.message);
+            console.error('音频源URL:', audio.src);
+            setIsPlaying(false);
+            shouldPlayAfterLoad.current = false;
+        };
+        
+        audio.onloadeddata = () => {
+            console.log('音频数据已加载');
+            console.log('音频格式支持:', audio.canPlayType('audio/mpeg'));
+        };
+        
+        audio.onstalled = () => {
+            console.warn('音频加载停滞');
+        };
+        
+        audio.onpause = () => {
+            console.log('音频暂停');
+            shouldPlayAfterLoad.current = false;
+        };
+        
+        // 如果音频已经可以播放，立即尝试播放
+        if (audio.readyState >= 2 && isPlaying) {
+            console.log('音频已就绪，立即播放');
+            audio.play().catch(e => {
+                if (e.name !== 'AbortError') {
+                    console.error('立即播放失败:', e);
+                }
+                setIsPlaying(false);
+            });
+        } else if (isPlaying) {
+            // 设置标志，等待加载完成
+            console.log('等待音频加载完成');
+            shouldPlayAfterLoad.current = true;
+        }
+    };
+
+    // 暂停/播放
+    const togglePlay = () => {
+        if (!currentSong) {
+            console.error('无法播放: 没有当前歌曲');
+            return;
+        }
+        
+        if (isPlaying) {
+            console.log('暂停播放');
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            setIsPlaying(false);
+            shouldPlayAfterLoad.current = false;
+        } else {
+            console.log('开始播放');
+            
+            // 确保音频元素存在
+            if (!audioRef.current) {
+                console.log('音频元素不存在，重新创建');
+                createAudioElement(currentSong);
+                return;
+            }
+            
+            // 检查音频就绪状态
+            if (audioRef.current.readyState >= 2) {
+                console.log('音频已就绪，立即播放');
+                audioRef.current.play().catch(e => {
+                    // 忽略AbortError
+                    if (e.name !== 'AbortError') {
+                        console.error('播放失败:', e);
+                        console.error('错误详情:', e.message);
+                    }
+                    setIsPlaying(false);
+                });
+                setIsPlaying(true);
+            } else {
+                console.log('音频未就绪，等待加载');
+                shouldPlayAfterLoad.current = true;
+                setIsPlaying(true);
+            }
+        }
+    };
+
+    // 关闭播放器
+    const closePlayer = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+        console.log('关闭播放器');
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            // 清理音频元素
+            audioRef.current = null;
+        }
+        shouldPlayAfterLoad.current = false;
+        setShowPlayer(false);
+        setIsPlaying(false);
+        setCurrentSong(null);
+    };
+
+    // 处理音频结束
+    const handleAudioEnd = () => {
+        console.log('音频播放结束');
+        setIsPlaying(false);
+        shouldPlayAfterLoad.current = false;
+    };
+
+    // 组件卸载时清理资源
+    useEffect(() => {
+        return () => {
+            console.log('组件卸载，清理音频资源');
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                audioRef.current = null;
+            }
+            shouldPlayAfterLoad.current = false;
+        };
+    }, []);
+
+    // 获取可靠的音频URL
+    const getReliableAudioUrl = (song) => {
+        // 使用经过测试的可靠音频源
+        const reliableAudioUrls = [
+            // SoundHelix - 明确允许使用的示例音乐
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+            // 备用音频源
+            "https://cdn.pixabay.com/download/audio/2022/03/10/audio_2c8a37f637.mp3?filename=ambient-piano-amp-strings-10711.mp3",
+            "https://cdn.pixabay.com/download/audio/2022/03/10/audio_2c8a37f638.mp3?filename=cinematic-trailer-amp- logo-10711.mp3"
+        ];
+        
+        // 基于歌曲信息生成唯一索引
+        const hash = simpleHashForAudio(`${song.id}-${song.title}`);
+        const index = hash % reliableAudioUrls.length;
+        const audioUrl = reliableAudioUrls[index];
+        
+        console.log(`回退音频URL for "${song.title}": ${audioUrl} (索引: ${index})`);
+        return audioUrl;
+    };
+
+    // 简单的音频哈希函数
+    const simpleHashForAudio = (str) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
+    };
+
+    // 键盘快捷键
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!showPlayer || !currentSong) return;
+            
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'Escape':
+                    closePlayer();
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showPlayer, currentSong, isPlaying]);
+
+    return (
+        <>
+            <div className="music-player">
+                {isLoading ? (
+                    <div className="music-loading">
+                        <div className="music-loading-spinner"></div>
+                        <p>正在从 music.alger.fun 实时搜索歌曲数据...</p>
+                        <p className="music-loading-hint">正在根据歌曲名搜索真实封面和音频，这可能需要一些时间</p>
+                        <p className="music-loading-hint">请保持网络连接并打开控制台查看详细进度</p>
+                    </div>
+                ) : (
+                    <div className="music-cards-container">
+                        {playlists.map((playlist, index) => (
+                        <div 
+                            key={playlist.id} 
+                            className="music-card music-card-float"
+                            style={{ animationDelay: `${index * 0.5}s` }}
+                        >
+                            <div className="music-card-header">
+                                <div 
+                                    className="music-card-background"
+                                    style={{
+                                        backgroundImage: `url(${playlistImages[playlist.name]})`,
+                                        backgroundSize: '100% auto',  // 宽度100%，高度自适应，左右全占满
+                                        backgroundPosition: 'center',
+                                        backgroundRepeat: 'no-repeat',
+                                        borderRadius: '12px 12px 0 0',
+                                        height: '120px',
+                                        position: 'relative',
+                                        width: '100%'
+                                    }}
+                                >
+                                    <div className="music-card-overlay">
+                                        <h3>{playlist.name}</h3>
+                                        <p>{playlist.description}</p>
                                     </div>
                                 </div>
-                            ))}
+                            </div>
+                            
+                            <div className="music-playlist-songs">
+                                {randomSongs[playlist.id]?.map((song, songIndex) => {
+                                    const isCurrent = currentSong && 
+                                        currentSong.id === song.id && 
+                                        currentSong.playlistId === playlist.id;
+                                    
+                                    return (
+                                        <div 
+                                            key={song.id} 
+                                            className={`music-song-item ${isCurrent ? 'music-song-item-playing' : ''}`}
+                                            onClick={() => playSong({
+                                                ...song,
+                                                playlistId: playlist.id,
+                                                playlistName: playlist.name
+                                            })}
+                                        >
+                                            <div className="music-song-cover">
+                                                {song.cover ? (
+                                                    <div className="music-song-cover-wrapper">
+                                                        <div className="music-song-cover-skeleton"></div>
+                                                        <img 
+                                                            src={song.cover} 
+                                                            alt={`${song.title} - ${song.artist}`}
+                                                            className="music-song-cover-img"
+                                                            loading="lazy"  // 懒加载
+                                                            onLoad={(e) => {
+                                                                e.target.style.opacity = '1';
+                                                                e.target.previousElementSibling.style.display = 'none';
+                                                            }}
+                                                            onError={(e) => {
+                                                                e.target.style.display = 'none';
+                                                                e.target.previousElementSibling.style.display = 'none';
+                                                                e.target.parentElement.nextElementSibling.style.display = 'flex';
+                                                            }}
+                                                            style={{opacity: 0, transition: 'opacity 0.3s ease'}}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <span>🎵</span>
+                                                )}
+                                                <div className="music-song-cover-fallback" style={{display: 'none'}}>
+                                                    <span>🎵</span>
+                                                </div>
+                                            </div>
+                                            <div className="music-song-info">
+                                                <div className="music-song-title">
+                                                    {song.title}
+                                                    {isCurrent && isPlaying && (
+                                                        <span className="music-song-playing-indicator">▶️</span>
+                                                    )}
+                                                    {song.source && (
+                                                        <span className={`music-song-source ${song.source.includes('真实') ? 'music-song-source-music-alger' : 'music-song-source-fallback'}`}>
+                                                            {song.source.includes('真实') ? '🌐 真实数据' : '🔄 回退数据'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="music-song-artist">{song.artist}</div>
+                                                <div className="music-song-album">{song.album}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            
+                            <a 
+                                href={playlist.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="music-card-btn"
+                            >
+                                查看完整歌单
+                            </a>
                         </div>
-                        
-                        <a 
-                            href={playlist.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="music-card-btn"
-                        >
-                            查看完整歌单
-                        </a>
-                    </div>
-                ))}
+                    ))}
+                </div>
+                )}
             </div>
 
-            <div className="music-status">
-                <p>
-                    页面已加载 | 三个卡片并列显示 ✅ | 卡片浮动动画 ✅ | 随机歌曲显示 ✅
-                    <button 
-                        onClick={refreshSongs}
-                        style={{
-                            marginLeft: '15px',
-                            padding: '5px 15px',
-                            background: '#667eea',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '15px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                        }}
-                    >
-                        刷新歌曲
-                    </button>
-                </p>
-            </div>
-        </div>
+            {/* 固定播放控件 */}
+            {showPlayer && currentSong && (
+                <div className="music-fixed-player">
+                    <div className="music-player-container">
+                        <div className="music-player-info">
+                            <div className="music-player-cover">
+                                <img 
+                                    src={currentSong.cover || 'https://via.placeholder.com/50/667eea/ffffff?text=🎵'} 
+                                    alt={`${currentSong.title} - ${currentSong.artist}`}
+                                />
+                            </div>
+                            <div className="music-player-details">
+                                <div className="music-player-title">{currentSong.title}</div>
+                                <div className="music-player-artist">{currentSong.artist}</div>
+                                <div className="music-player-playlist">来自: {currentSong.playlistName}</div>
+                            </div>
+                        </div>
+                        
+                        <div className="music-player-controls">
+                            <button 
+                                className="music-player-control-btn"
+                                onClick={togglePlay}
+                                aria-label={isPlaying ? '暂停' : '播放'}
+                            >
+                                {isPlaying ? '⏸️' : '▶️'}
+                            </button>
+                            <button 
+                                className="music-player-control-btn music-player-close-btn"
+                                onClick={closePlayer}
+                                aria-label="关闭"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* 音频元素现在动态创建和管理 */}
+                </div>
+            )}
+
+            {/* 音频可视化占位 - 未来扩展 */}
+            {showPlayer && (
+                <div className="music-visualizer-placeholder">
+                    <div className="music-visualizer-bar"></div>
+                    <div className="music-visualizer-bar"></div>
+                    <div className="music-visualizer-bar"></div>
+                    <div className="music-visualizer-bar"></div>
+                    <div className="music-visualizer-bar"></div>
+                </div>
+            )}
+        </>
     );
 };
 

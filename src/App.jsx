@@ -217,6 +217,7 @@ export default function App() {
         </section>
 
         <section id="playlist">
+          <h2>Playlist</h2>
           <MusicPlayer />
         </section>
 
