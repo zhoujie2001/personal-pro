@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './MusicPlayer.css';
-import { playlists as importedPlaylists, getRandomSongs } from './playlistData';
-import { enhanceSongsSimple } from './simpleMusicService';
+import { playlists as importedPlaylists, pickRandomSongs } from './playlistData';
+import { buildFallbackSongs, fetchPlaylistSongs } from './simpleMusicService';
 
 const playlists = importedPlaylists;
 
@@ -13,49 +13,51 @@ const playlistImages = {
 
 const MusicPlayer = () => {
   const [randomSongs, setRandomSongs] = useState({});
+  const [playlistErrors, setPlaylistErrors] = useState({});
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef(null);
 
-  const playlistMap = useMemo(() => {
-    return playlists.reduce((acc, playlist) => {
+  const playlistMap = useMemo(() => (
+    playlists.reduce((acc, playlist) => {
       acc[playlist.id] = playlist;
       return acc;
-    }, {});
-  }, []);
+    }, {})
+  ), []);
 
-  const buildSongsForCard = async () => {
+  const loadPlaylists = async () => {
     setIsLoading(true);
     const nextSongs = {};
+    const nextErrors = {};
 
-    for (const playlist of playlists) {
-      const picked = getRandomSongs(playlist.songs, Math.min(5, playlist.songs.length)).map((song, index) => ({
-        ...song,
-        playlistId: playlist.id,
-        playlistName: playlist.name,
-        localKey: `${playlist.id}-${song.id}-${index}`,
-      }));
-
-      nextSongs[playlist.id] = await enhanceSongsSimple(picked);
-    }
+    await Promise.all(
+      playlists.map(async (playlist) => {
+        try {
+          const songs = await fetchPlaylistSongs(playlist);
+          nextSongs[playlist.id] = pickRandomSongs(songs, Math.min(5, songs.length));
+        } catch (error) {
+          nextSongs[playlist.id] = buildFallbackSongs(playlist, 5);
+          nextErrors[playlist.id] = error.message || '真实歌单抓取失败';
+        }
+      })
+    );
 
     setRandomSongs(nextSongs);
+    setPlaylistErrors(nextErrors);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    buildSongsForCard();
+    loadPlaylists();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    };
+  useEffect(() => () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
   }, []);
 
   const playSong = async (song) => {
@@ -134,8 +136,8 @@ const MusicPlayer = () => {
         {isLoading ? (
           <div className="music-loading">
             <div className="music-loading-spinner"></div>
-            <p>正在准备音乐数据...</p>
-            <p className="music-loading-hint">保持原有界面，仅补齐歌单展示与在线播放能力</p>
+            <p>正在抓取真实歌单数据...</p>
+            <p className="music-loading-hint">已升级为 Serverless 代理方案，保持原有 UI 不变</p>
           </div>
         ) : (
           <div className="music-cards-container">
@@ -197,6 +199,10 @@ const MusicPlayer = () => {
                     );
                   })}
                 </div>
+
+                {playlistErrors[playlist.id] && (
+                  <div className="music-fetch-warning">当前歌单受 QQ 隐私或鉴权限制，已自动回退为占位播放。</div>
+                )}
 
                 <a className="music-card-btn" href={playlist.url} target="_blank" rel="noreferrer">
                   查看完整歌单
