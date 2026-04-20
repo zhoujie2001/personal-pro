@@ -1,60 +1,54 @@
-import { useEffect, useRef } from "react"; 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MusicPlayer from "./MusicPlayer";
 
 export default function App() {
-    const sliderRef = useRef(null);
+  const sliderRef = useRef(null);
+  const [activePhoto, setActivePhoto] = useState(null);
 
   useEffect(() => {
-        const slider = sliderRef.current;
-        const handleEsc = (e) => {
-        if (e.key === "Escape") {
-          setActivePhoto(null);
-        }
-      };
-        if (!slider) return;
+    const slider = sliderRef.current;
+    if (!slider) return;
 
-        let scrollAmount = 0;
-        let animationFrame;
+    let scrollAmount = 0;
+    let animationFrame;
+    const speed = 0.5;
 
-        const speed = 0.5;
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        setActivePhoto(null);
+      }
+    };
 
-        const scroll = () => {
-          scrollAmount += speed;
-          slider.scrollLeft = scrollAmount;
+    const scroll = () => {
+      scrollAmount += speed;
+      slider.scrollLeft = scrollAmount;
 
-          if (scrollAmount >= slider.scrollWidth / 2) {
-            scrollAmount = 0;
-            slider.scrollLeft = 0;
-          }
-          // console.log(slider.scrollLeft);
-          animationFrame = requestAnimationFrame(scroll);
-        };
+      if (scrollAmount >= slider.scrollWidth / 2) {
+        scrollAmount = 0;
+        slider.scrollLeft = 0;
+      }
 
-        animationFrame = requestAnimationFrame(scroll);
+      animationFrame = requestAnimationFrame(scroll);
+    };
 
-        const stop = () => cancelAnimationFrame(animationFrame);
-        const start = () => {
-          animationFrame = requestAnimationFrame(scroll);
-        };
+    const stop = () => cancelAnimationFrame(animationFrame);
+    const start = () => {
+      animationFrame = requestAnimationFrame(scroll);
+    };
 
-        window.addEventListener("keydown", handleEsc);
-        return () => window.removeEventListener("keydown", handleEsc);
-        
+    animationFrame = requestAnimationFrame(scroll);
+    window.addEventListener("keydown", handleEsc);
+    slider.addEventListener("mouseenter", stop);
+    slider.addEventListener("mouseleave", start);
 
-        slider.addEventListener("mouseenter", stop);
-        slider.addEventListener("mouseleave", start);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("keydown", handleEsc);
+      slider.removeEventListener("mouseenter", stop);
+      slider.removeEventListener("mouseleave", start);
+    };
+  }, []);
 
-        return () => {
-          cancelAnimationFrame(animationFrame);
-          slider.removeEventListener("mouseenter", stop);
-          slider.removeEventListener("mouseleave", start);
-        };
-  }, []); 
-
-
-  const [activePhoto, setActivePhoto] = useState(null);
-  
   const books = [
     { title: "霍乱时期的爱情", year: "2024" },
     { title: "花街往事", year: "2024" },
@@ -71,7 +65,6 @@ export default function App() {
 
   return (
     <div className="layout">
-      
       {/* 左侧目录 */}
       <aside className="sidebar">
         <h2>周杰 / Dylan</h2>
@@ -87,20 +80,17 @@ export default function App() {
 
       {/* 主体内容 */}
       <main className="content">
-
         <section id="about">
           <h1>周杰 / Dylan</h1>
           <p className="subtitle">
             A pessimist in the third quadrant, yet passionate about movement.
           </p>
-          <p>
-            因为天气好，因为天气不好，因为天气感刚好。现居成都。
-          </p>
+          <p>因为天气好，因为天气不好，因为天气感刚好。现居成都。</p>
         </section>
 
         <section id="reading">
           <h2>Reading_favorite</h2>
-          <div className="div_books" >
+          <div className="div_books">
             <ul className="hanging-list">
               {books.map((book, index) => (
                 <li key={index}>
@@ -112,38 +102,32 @@ export default function App() {
           </div>
         </section>
 
-            
-              
         <section id="travel">
-
           <h2>Travel</h2>
-          <p>
-            嘿！快看那边。
-          </p>
-
+          <p>嘿！快看那边。</p>
           <div className="slider-wrapper" ref={sliderRef}>
             <div className="video-track">
-              {[1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10].map((num, index) => (
-                <video
-                  key={index}
-                  src={`videos/travel${num}.mp4`}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls
-                />
-              ))}
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
+                (num, index) => (
+                  <video
+                    key={index}
+                    src={`videos/travel${num}.mp4`}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    controls
+                  />
+                )
+              )}
             </div>
           </div>
-          
         </section>
 
         <section id="photography">
           <h2>Photography</h2>
-          <section id="photography">
-            <h2>  myCut</h2>
-
+          <section className="photography-content">
+            <h2>myCut</h2>
             <div className="photo-grid">
               {[
                 { src: "images/photo1.jpg", title: "星星上开满了花", desc: "成都 · 2023" },
@@ -177,10 +161,11 @@ export default function App() {
                 { src: "images/photo30.jpg", title: "日出", desc: "鱼子西 · 2024" },
                 { src: "images/photo31.jpg", title: "蔑", desc: "Home · 2024" },
               ].map((item, index) => (
-                <div 
-                className="photo-card" 
-                key={index} 
-                onClick={() => setActivePhoto(item)}>
+                <div
+                  className="photo-card"
+                  key={index}
+                  onClick={() => setActivePhoto(item)}
+                >
                   <div className="photo-img-wrapper">
                     <img src={item.src} alt={item.title} />
                   </div>
@@ -192,6 +177,7 @@ export default function App() {
               ))}
             </div>
           </section>
+
           {activePhoto && (
             <div className="lightbox" onClick={() => setActivePhoto(null)}>
               <div
@@ -204,9 +190,7 @@ export default function App() {
                 >
                   ×
                 </button>
-
                 <img src={activePhoto.src} alt={activePhoto.title} />
-
                 <div className="lightbox-caption">
                   <h3>{activePhoto.title}</h3>
                   <p>{activePhoto.desc}</p>
@@ -225,30 +209,20 @@ export default function App() {
           <h2>Links</h2>
           <ul className="links">
             <li>
-              📧 <a href="mailto:zhou.1900@jiyunhudong.com">
-                zhou.1900@jiyunhudong.com
-              </a>
+              📧 <a href="mailto:zhou.1900@jiyunhudong.com">zhou.1900@jiyunhudong.com</a>
             </li>
             <li>
-              🔗 <a href="https://v.douyin.com/VWYUIrtxV2Y/" target="_blank">
-                Douyin
-              </a>
+              🔗 <a href="https://v.douyin.com/VWYUIrtxV2Y/" target="_blank" rel="noreferrer">Douyin</a>
             </li>
             <li>
-              🔗 <a href="https://www.douban.com/people/269994208/" target="_blank">
-                Douban
-              </a>
+              🔗 <a href="https://www.douban.com/people/269994208/" target="_blank" rel="noreferrer">Douban</a>
             </li>
             <li>
-              🔗 <a href="https://xhslink.com/m/39qXQZqVMys" target="_blank">
-                Xiaohongshu
-              </a>
+              🔗 <a href="https://xhslink.com/m/39qXQZqVMys" target="_blank" rel="noreferrer">Xiaohongshu</a>
             </li>
           </ul>
         </section>
-
       </main>
     </div>
-  )
-  
+  );
 }
