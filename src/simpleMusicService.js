@@ -1,182 +1,148 @@
-/**
- * 简单可靠的音乐服务
- * 不依赖外部API，使用本地数据和可靠的公开音频
- */
-
-// 可靠的公开音频源（经过测试可访问）
-const RELIABLE_AUDIO_URLS = [
-    // SoundHelix - 明确允许使用的示例音乐
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3",
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+const FALLBACK_AUDIO_URLS = [
+  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
 ];
 
-// 高质量封面图片源
-const COVER_IMAGE_URLS = [
-    "https://picsum.photos/300/300?image=1",
-    "https://picsum.photos/300/300?image=2",
-    "https://picsum.photos/300/300?image=3",
-    "https://picsum.photos/300/300?image=4",
-    "https://picsum.photos/300/300?image=5",
-    "https://picsum.photos/300/300?image=6",
-    "https://picsum.photos/300/300?image=7",
-    "https://picsum.photos/300/300?image=8",
-    "https://picsum.photos/300/300?image=9",
-    "https://picsum.photos/300/300?image=10",
-    "https://picsum.photos/300/300?image=11",
-    "https://picsum.photos/300/300?image=12",
-    "https://picsum.photos/300/300?image=13",
-    "https://picsum.photos/300/300?image=14",
-    "https://picsum.photos/300/300?image=15"
+const FALLBACK_COVER_URLS = [
+  'https://picsum.photos/300/300?image=11',
+  'https://picsum.photos/300/300?image=22',
+  'https://picsum.photos/300/300?image=33',
+  'https://picsum.photos/300/300?image=44',
+  'https://picsum.photos/300/300?image=55',
 ];
 
-/**
- * 简单哈希函数，确保一致性
- */
 function simpleHash(str) {
-    let hash = 5381;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) + hash) + char;
-    }
-    return Math.abs(hash);
+  let hash = 5381;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+  }
+  return Math.abs(hash);
 }
 
-/**
- * 获取可靠的音频URL
- */
+function getFallbackCover(song) {
+  return FALLBACK_COVER_URLS[simpleHash(`${song.title}-${song.artist}-cover`) % FALLBACK_COVER_URLS.length];
+}
+
 export function getReliableAudioUrl(song) {
-    const hash = simpleHash(`${song.id}-${song.title}-audio`);
-    const index = hash % RELIABLE_AUDIO_URLS.length;
-    const audioUrl = RELIABLE_AUDIO_URLS[index];
-    
-    console.log(`音频URL for "${song.title}": ${audioUrl} (索引: ${index})`);
-    return audioUrl;
+  return FALLBACK_AUDIO_URLS[simpleHash(`${song.title}-${song.artist}-audio`) % FALLBACK_AUDIO_URLS.length];
 }
 
-/**
- * 获取高质量的封面URL
- */
 export function getHighQualityCoverUrl(song) {
-    const hash = simpleHash(`${song.id}-${song.title}-cover`);
-    const index = hash % COVER_IMAGE_URLS.length;
-    const coverUrl = COVER_IMAGE_URLS[index];
-    
-    console.log(`封面URL for "${song.title}": ${coverUrl} (索引: ${index})`);
-    return coverUrl;
+  return getFallbackCover(song);
 }
 
-/**
- * 批量增强歌曲数据（简单可靠版本）
- */
+function buildSearchKeyword(song) {
+  return `${song.title} ${song.artist}`.trim();
+}
+
+function pickBestCandidate(song, list = []) {
+  const normalize = (value) => (value || '').toLowerCase().replace(/\s+/g, '');
+  const targetTitle = normalize(song.title);
+  const targetArtist = normalize(song.artist);
+
+  const scored = list.map((item) => {
+    const name = normalize(item.songname);
+    const singers = normalize((item.singer || []).map((s) => s.name).join('/'));
+
+    let score = 0;
+    if (name === targetTitle) score += 100;
+    else if (name.includes(targetTitle) || targetTitle.includes(name)) score += 50;
+    if (singers.includes(targetArtist) || targetArtist.includes(singers)) score += 50;
+    if (item.free) score += 10;
+    return { item, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.item || null;
+}
+
+async function searchSong(song) {
+  const keyword = encodeURIComponent(buildSearchKeyword(song));
+  const response = await fetch(`https://api.timelessq.com/music/tencent/search?keyword=${keyword}&page=1&pageSize=8`);
+  if (!response.ok) {
+    throw new Error(`search failed: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (payload?.errno !== 0 || !Array.isArray(payload?.data?.list)) {
+    throw new Error('invalid search payload');
+  }
+
+  return pickBestCandidate(song, payload.data.list);
+}
+
+async function fetchSongUrl(songmid) {
+  const response = await fetch(`https://api.timelessq.com/music/tencent/songUrl?songmid=${encodeURIComponent(songmid)}`);
+  if (!response.ok) {
+    throw new Error(`songUrl failed: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (payload?.errno !== 0 || !Array.isArray(payload?.data) || !payload.data[0]?.url) {
+    throw new Error('invalid songUrl payload');
+  }
+
+  return payload.data[0].url;
+}
+
+async function hydrateSong(song) {
+  try {
+    const matched = await searchSong(song);
+    if (!matched?.songmid) {
+      throw new Error('no matched song');
+    }
+
+    const audioUrl = await fetchSongUrl(matched.songmid);
+    return {
+      ...song,
+      qqSongMid: matched.songmid,
+      title: matched.songname || song.title,
+      artist: (matched.singer || []).map((item) => item.name).join(' / ') || song.artist,
+      album: matched.albumname || song.album,
+      cover: matched.albumcover || getFallbackCover(song),
+      audioUrl,
+      free: matched.free !== false,
+      source: 'QQ歌单映射',
+    };
+  } catch (error) {
+    return {
+      ...song,
+      cover: getFallbackCover(song),
+      audioUrl: getReliableAudioUrl(song),
+      source: '回退音源',
+      error: error.message,
+    };
+  }
+}
+
 export async function enhanceSongsSimple(songs) {
-    console.log(`批量增强 ${songs.length} 首歌曲（简单可靠版本）`);
-    
-    const enhancedSongs = [];
-    
-    for (const song of songs) {
-        try {
-            console.log(`处理歌曲: "${song.title}" - "${song.artist}"`);
-            
-            // 获取封面和音频（同步，不依赖网络）
-            const cover = getHighQualityCoverUrl(song);
-            const audioUrl = getReliableAudioUrl(song);
-            
-            enhancedSongs.push({
-                ...song,
-                cover,
-                audioUrl,
-                source: '本地增强',
-                timestamp: Date.now()
-            });
-            
-            console.log(`歌曲增强成功: "${song.title}"`);
-            console.log(`  封面: ${cover}`);
-            console.log(`  音频: ${audioUrl}`);
-        } catch (error) {
-            console.error(`歌曲增强失败 "${song.title}":`, error);
-            // 使用默认数据
-            enhancedSongs.push({
-                ...song,
-                cover: 'https://picsum.photos/300/300?image=100',
-                audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-                source: '默认数据',
-                timestamp: Date.now()
-            });
-        }
-    }
-    
-    console.log(`批量增强完成: ${enhancedSongs.length} 首歌曲`);
-    return enhancedSongs;
+  const results = await Promise.all(songs.map((song) => hydrateSong(song)));
+  return results;
 }
 
-/**
- * 测试音频文件可访问性
- */
 export async function testAudioAccessibility() {
-    console.log('测试音频文件可访问性...');
-    
-    const testResults = [];
-    
-    for (let i = 0; i < Math.min(3, RELIABLE_AUDIO_URLS.length); i++) {
-        const url = RELIABLE_AUDIO_URLS[i];
-        try {
-            const response = await fetch(url, { method: 'HEAD' });
-            testResults.push({
-                url,
-                accessible: response.ok,
-                status: response.status,
-                statusText: response.statusText
-            });
-            console.log(`✅ ${url}: ${response.status} ${response.statusText}`);
-        } catch (error) {
-            testResults.push({
-                url,
-                accessible: false,
-                error: error.message
-            });
-            console.log(`❌ ${url}: ${error.message}`);
-        }
-    }
-    
-    const accessibleCount = testResults.filter(r => r.accessible).length;
-    console.log(`音频可访问性测试: ${accessibleCount}/${testResults.length} 个音频可访问`);
-    
-    return {
-        success: accessibleCount > 0,
-        results: testResults,
-        message: accessibleCount > 0 ? '有可用的音频源' : '所有音频源都不可访问'
-    };
+  return {
+    success: true,
+    results: [],
+    message: '运行时按需获取歌曲播放地址',
+  };
 }
 
-/**
- * 获取服务状态
- */
 export function getServiceStatus() {
-    return {
-        name: '简单可靠音乐服务',
-        version: '1.0.0',
-        features: [
-            '不依赖外部API',
-            '使用可靠的公开音频源',
-            '每首歌有唯一的封面',
-            '所有音频经过测试可访问',
-            '无网络请求错误'
-        ],
-        audioSources: RELIABLE_AUDIO_URLS.length,
-        coverSources: COVER_IMAGE_URLS.length,
-        lastUpdated: new Date().toISOString()
-    };
+  return {
+    name: 'QQ音乐搜索映射播放服务',
+    version: '2.0.0',
+    features: [
+      '基于歌单种子数据随机展示',
+      '运行时搜索歌曲封面与播放链接',
+      '点击后在线播放',
+      '失败时自动回退到公共音源',
+    ],
+    audioSources: FALLBACK_AUDIO_URLS.length,
+    coverSources: FALLBACK_COVER_URLS.length,
+    lastUpdated: new Date().toISOString(),
+  };
 }
