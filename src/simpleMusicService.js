@@ -1,98 +1,182 @@
-const FALLBACK_AUDIO_URLS = [
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-  'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-];
+const SEARCH_API = 'https://api.timelessq.com/music/tencent/search'
+const SONG_URL_API = 'https://api.timelessq.com/music/tencent/songUrl'
+const UNPLAYABLE_URL_PATTERN = /^https?:\/\/aqqmusic\.tc\.qq\.com\/?$/
+const songUrlCache = new Map()
 
-const FALLBACK_COVER_URLS = [
-  'https://picsum.photos/300/300?image=11',
-  'https://picsum.photos/300/300?image=22',
-  'https://picsum.photos/300/300?image=33',
-  'https://picsum.photos/300/300?image=44',
-  'https://picsum.photos/300/300?image=55',
-];
-
-function simpleHash(str) {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-  }
-  return Math.abs(hash);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function getReliableAudioUrl(song) {
-  return FALLBACK_AUDIO_URLS[simpleHash(`${song.title}-${song.artist}-audio`) % FALLBACK_AUDIO_URLS.length];
+async function fetchJsonWithRetry(url, retries = 3) {
+  let lastError
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`request failed: ${response.status}`)
+      }
+      return await response.json()
+    } catch (error) {
+      lastError = error
+      if (attempt < retries) {
+        await sleep(250 * attempt)
+      }
+    }
+  }
+
+  throw lastError
+}
+
+function encodeKeyword(title, artist) {
+  return encodeURIComponent(`${title} ${artist}`.trim())
+}
+
+function normalizeText(value) {
+  return `${value || ''}`.trim().toLowerCase()
+}
+
+function getSingerText(candidate) {
+  return Array.isArray(candidate?.singer)
+    ? candidate.singer.map((item) => item.name).filter(Boolean).join(' / ')
+    : ''
+}
+
+function scoreCandidate(candidate, originalSong) {
+  const title = normalizeText(candidate?.songname)
+  const artist = normalizeText(getSingerText(candidate))
+  const targetTitle = normalizeText(originalSong.title)
+  const targetArtist = normalizeText(originalSong.artist)
+
+  let score = 0
+
+  if (title === targetTitle) {
+    score += 100
+  } else if (title.includes(targetTitle) || targetTitle.includes(title)) {
+    score += 60
+  }
+
+  if (artist.includes(targetArtist)) {
+    score += 40
+  }
+
+  if (candidate?.free) {
+    score += 15
+  }
+
+  return score
+}
+
+function normalizeCandidate(candidate, originalSong, playlist, source = 'timelessq-search') {
+  const singers = getSingerText(candidate)
+
+  return {
+    id: candidate?.songmid || `${playlist.id}-${originalSong.id}`,
+    localKey: `${playlist.id}-${candidate?.songmid || originalSong.id}`,
+    songmid: candidate?.songmid || '',
+    title: candidate?.songname || originalSong.title,
+    artist: singers || originalSong.artist,
+    album: candidate?.albumname || originalSong.album || '',
+    cover: candidate?.albumcover || getFallbackCover(originalSong),
+    source,
+    playlistId: playlist.id,
+    playlistName: playlist.name,
+  }
 }
 
 export function getFallbackCover(song) {
-  return FALLBACK_COVER_URLS[simpleHash(`${song.title}-${song.artist}-cover`) % FALLBACK_COVER_URLS.length];
+  return `https://picsum.photos/seed/${encodeURIComponent(`${song.title}-${song.artist}`)}/300/300`
 }
 
-function normalizeSong(song, playlist) {
-  const singers = Array.isArray(song.singer)
-    ? song.singer.map((item) => item.name).filter(Boolean).join(' / ')
-    : song.artist;
-
-  return {
-    id: song.songid || song.id || song.songmid,
-    songmid: song.songmid || song.mid || '',
-    title: song.songname || song.title || '未知歌曲',
-    artist: singers || '未知歌手',
-    album: song.albumname || song.album || '未知专辑',
-    cover: song.albumcover || getFallbackCover(song),
-    audioUrl: song.audioUrl || getReliableAudioUrl(song),
-    source: song.audioSource || song.source || '真实歌单',
-    playlistId: playlist.id,
-    playlistName: playlist.name,
-  };
-}
-
-export async function fetchPlaylistSongs(playlist) {
-  const response = await fetch(`/api/qq/playlist?dissid=${encodeURIComponent(playlist.dissid)}`);
-  const payload = await response.json();
-
-  if (!response.ok || !payload?.success || !Array.isArray(payload?.songs)) {
-    throw new Error(payload?.message || 'playlist fetch failed');
+async function searchSongCandidates(song) {
+  const url = `${SEARCH_API}?keyword=${encodeKeyword(song.title, song.artist)}&page=1&pageSize=10`
+  const payload = await fetchJsonWithRetry(url)
+  const list = payload?.data?.list
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error('no search result')
   }
 
-  return payload.songs.map((song, index) => ({
-    ...normalizeSong(song, playlist),
-    localKey: `${playlist.id}-${song.songmid || song.songid || index}-${index}`,
-  }));
+  return [...list].sort((a, b) => scoreCandidate(b, song) - scoreCandidate(a, song)).slice(0, 6)
 }
 
-export function buildFallbackSongs(playlist, count = 5) {
-  return Array.from({ length: count }, (_, index) => {
-    const baseTitle = `${playlist.name} ${index + 1}`;
+export async function resolveSongUrl(song) {
+  if (!song.songmid) {
+    return { ...song, audioUrl: '' }
+  }
+
+  if (songUrlCache.has(song.songmid)) {
     return {
-      id: `${playlist.id}-${index + 1}`,
-      songmid: '',
-      title: baseTitle,
-      artist: '暂未获取',
-      album: '等待服务端抓取',
-      cover: getFallbackCover({ title: baseTitle, artist: playlist.name }),
-      audioUrl: getReliableAudioUrl({ title: baseTitle, artist: playlist.name }),
-      source: '回退音源',
-      playlistId: playlist.id,
-      playlistName: playlist.name,
-      localKey: `${playlist.id}-fallback-${index + 1}`,
-    };
-  });
+      ...song,
+      audioUrl: songUrlCache.get(song.songmid),
+      source: songUrlCache.get(song.songmid) ? 'timelessq-songUrl-cache' : `${song.source}-unplayable-cache`,
+    }
+  }
+
+  const payload = await fetchJsonWithRetry(`${SONG_URL_API}?songmid=${encodeURIComponent(song.songmid)}`)
+  const data = Array.isArray(payload?.data) ? payload.data[0] : payload?.data
+  const audioUrl = data?.url || ''
+  const playable = audioUrl && !UNPLAYABLE_URL_PATTERN.test(audioUrl)
+  const finalUrl = playable ? audioUrl : ''
+  songUrlCache.set(song.songmid, finalUrl)
+
+  return {
+    ...song,
+    audioUrl: finalUrl,
+    source: playable ? 'timelessq-songUrl' : `${song.source}-unplayable`,
+  }
 }
 
-export function getServiceStatus() {
-  return {
-    name: '真实 QQ 歌单代理服务',
-    version: '3.0.0',
-    features: [
-      '通过 Serverless 代理获取真实歌单',
-      '随机展示每个歌单 5 首歌曲',
-      '展示真实封面、歌名、歌手、专辑',
-      '可播放时优先使用真实音源',
-      '失败时自动回退到公共音源',
-    ],
-    lastUpdated: new Date().toISOString(),
-  };
+export async function searchSong(song, playlist) {
+  const candidates = await searchSongCandidates(song)
+
+  for (const candidate of candidates) {
+    const normalized = normalizeCandidate(candidate, song, playlist)
+    const resolved = await resolveSongUrl(normalized)
+    if (resolved.audioUrl) {
+      return resolved
+    }
+  }
+
+  return normalizeCandidate(candidates[0], song, playlist, 'timelessq-search-no-playable-url')
+}
+
+export async function buildPlayableSongs(playlist, count = 5) {
+  const pool = [...playlist.fallbackSongs].sort(() => Math.random() - 0.5)
+  const playableResults = []
+  const fallbackResults = []
+
+  for (const song of pool) {
+    try {
+      const resolved = await searchSong(song, playlist)
+      const normalized = {
+        ...resolved,
+        cover: resolved.cover || getFallbackCover(song),
+      }
+
+      if (normalized.audioUrl) {
+        playableResults.push(normalized)
+      } else {
+        fallbackResults.push(normalized)
+      }
+    } catch (error) {
+      fallbackResults.push({
+        id: `${playlist.id}-${song.id}`,
+        localKey: `${playlist.id}-${song.id}`,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        cover: getFallbackCover(song),
+        audioUrl: '',
+        source: 'fallback-song',
+        playlistId: playlist.id,
+        playlistName: playlist.name,
+      })
+    }
+
+    if (playableResults.length >= count) {
+      break
+    }
+  }
+
+  return [...playableResults, ...fallbackResults].slice(0, count)
 }
