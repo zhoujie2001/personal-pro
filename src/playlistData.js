@@ -6,6 +6,20 @@ export const playlists = [
     url: 'https://y.qq.com/n/ryqq/playlist/8670100374',
     description: '温暖的光与静谧的树，适合安静思考的时光',
     icon: '☀️',
+    fallbackSongs: [
+      { id: 1, title: '光', artist: '陈粒', album: '如也' },
+      { id: 2, title: '追光者', artist: '岑宁儿', album: '夏至未至 电视剧原声带' },
+      { id: 3, title: '光年之外', artist: 'G.E.M.邓紫棋', album: '新的心跳' },
+      { id: 4, title: '白鸽', artist: '伍佰', album: '滚石香港黄金十年 伍佰精选' },
+      { id: 5, title: '时光，一如既往', artist: '房东的猫', album: '时光，一如既往' },
+      { id: 6, title: '如也', artist: '陈粒', album: '如也' },
+      { id: 7, title: '平凡之路', artist: '朴树', album: '猎户星座' },
+      { id: 8, title: '生如夏花', artist: '朴树', album: '生如夏花' },
+      { id: 9, title: 'New Boy', artist: '朴树', album: '我去2000年' },
+      { id: 10, title: '遇见', artist: '孙燕姿', album: 'The Moment' },
+      { id: 11, title: '夜空中最亮的星', artist: '逃跑计划', album: '世界' },
+      { id: 12, title: '光合作用', artist: '房东的猫', album: '柔软' },
+    ],
   },
   {
     id: 2,
@@ -14,6 +28,20 @@ export const playlists = [
     url: 'https://y.qq.com/n/ryqq/playlist/8667064202',
     description: '雨声与屋檐的对话，适合雨天聆听的旋律',
     icon: '🌧️',
+    fallbackSongs: [
+      { id: 1, title: '雨爱', artist: '杨丞琳', album: 'Rainie & Love...?' },
+      { id: 2, title: '下雨天', artist: '南拳妈妈', album: '优の良曲 南搞小孩' },
+      { id: 3, title: '雨下一整晚', artist: '周杰伦', album: '跨时代' },
+      { id: 4, title: '听见下雨的声音', artist: '魏如昀', album: '听见下雨的声音 电影原声带' },
+      { id: 5, title: '晴天', artist: '周杰伦', album: '叶惠美' },
+      { id: 6, title: '屋顶', artist: '周杰伦', album: '爱回温' },
+      { id: 7, title: '粉旋风', artist: '汪苏泷', album: '明日世界ACT I' },
+      { id: 8, title: '忽而今夏', artist: '汪苏泷', album: '忽而今夏 电视剧珍爱原声大碟' },
+      { id: 9, title: '有点甜', artist: '汪苏泷', album: '万有引力' },
+      { id: 10, title: '小情歌', artist: '苏打绿', album: '小宇宙（苏打绿版）' },
+      { id: 11, title: '我好像在哪见过你', artist: '薛之谦', album: '初学者' },
+      { id: 12, title: '后会无期', artist: 'G.E.M.邓紫棋', album: '新的心跳' },
+    ],
   },
   {
     id: 3,
@@ -22,10 +50,24 @@ export const playlists = [
     url: 'https://y.qq.com/n/ryqq/playlist/8667059995',
     description: '风与草地的交响，适合户外漫步的节奏',
     icon: '🌬️',
+    fallbackSongs: [
+      { id: 1, title: '起风了', artist: '买辣椒也用券', album: '起风了（旧版）' },
+      { id: 2, title: '风吹麦浪', artist: '李健', album: '想念你' },
+      { id: 3, title: '风中有朵雨做的云', artist: '孟庭苇', album: '风中有朵雨做的云' },
+      { id: 4, title: '后来的我们', artist: '五月天', album: '自传' },
+      { id: 5, title: '知足', artist: '五月天', album: '知足 最真杰作选' },
+      { id: 6, title: '倔强', artist: '五月天', album: '神的孩子都在跳舞' },
+      { id: 7, title: '蓝莲花', artist: '许巍', album: '时光，漫步' },
+      { id: 8, title: '曾经的你', artist: '许巍', album: '每一刻都是崭新的' },
+      { id: 9, title: '旅行', artist: '许巍', album: '每一刻都是崭新的' },
+      { id: 10, title: '平凡的一天', artist: '毛不易', album: '平凡的一天' },
+      { id: 11, title: '山海', artist: '草东没有派对', album: '丑奴儿' },
+      { id: 12, title: '告白气球', artist: '周杰伦', album: '周杰伦的床边故事' },
+    ],
   },
-];
+]
 
 export function pickRandomSongs(songs, count = 5) {
-  const shuffled = [...songs].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  const shuffled = [...songs].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, count)
 }
