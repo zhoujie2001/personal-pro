@@ -33,35 +33,74 @@ function encodeKeyword(title, artist) {
 }
 
 function normalizeText(value) {
-  return `${value || ''}`.trim().toLowerCase()
+  return `${value || ''}`
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\u00A0]+/g, '')
+    .replace(/[()（）\[\]【】《》<>「」『』'"“”‘’`~!！?？,，.。:：;；/\\|·•—\-_+*=]+/g, '')
+}
+
+function getSingerList(candidate) {
+  return Array.isArray(candidate?.singer)
+    ? candidate.singer.map((item) => `${item?.name || ''}`.trim()).filter(Boolean)
+    : []
 }
 
 function getSingerText(candidate) {
-  return Array.isArray(candidate?.singer)
-    ? candidate.singer.map((item) => item.name).filter(Boolean).join(' / ')
-    : ''
+  return getSingerList(candidate).join(' / ')
 }
 
-function scoreCandidate(candidate, originalSong) {
-  const title = normalizeText(candidate?.songname)
-  const artist = normalizeText(getSingerText(candidate))
-  const targetTitle = normalizeText(originalSong.title)
+function getCandidateAlbum(candidate) {
+  return `${candidate?.albumname || ''}`.trim()
+}
+
+function isExactTitleMatch(candidate, originalSong) {
+  return normalizeText(candidate?.songname) === normalizeText(originalSong.title)
+}
+
+function isExactArtistMatch(candidate, originalSong) {
   const targetArtist = normalizeText(originalSong.artist)
+  const singers = getSingerList(candidate).map((item) => normalizeText(item))
+  return singers.includes(targetArtist)
+}
 
+function isExactAlbumMatch(candidate, originalSong) {
+  const targetAlbum = normalizeText(originalSong.album)
+  if (!targetAlbum) {
+    return false
+  }
+  return normalizeText(getCandidateAlbum(candidate)) === targetAlbum
+}
+
+function isStrictMatch(candidate, originalSong) {
+  return isExactTitleMatch(candidate, originalSong) && isExactArtistMatch(candidate, originalSong)
+}
+
+function scoreStrictCandidate(candidate, originalSong) {
   let score = 0
+  const singers = getSingerList(candidate)
 
-  if (title === targetTitle) {
+  if (isExactTitleMatch(candidate, originalSong)) {
     score += 100
-  } else if (title.includes(targetTitle) || targetTitle.includes(title)) {
+  }
+
+  if (isExactArtistMatch(candidate, originalSong)) {
+    score += 100
+  }
+
+  if (isExactAlbumMatch(candidate, originalSong)) {
     score += 60
   }
 
-  if (artist.includes(targetArtist)) {
-    score += 40
+  if (singers.length === 1) {
+    score += 20
+  } else if (singers.length > 1) {
+    score += 5
   }
 
   if (candidate?.free) {
-    score += 15
+    score += 10
   }
 
   return score
@@ -69,6 +108,7 @@ function scoreCandidate(candidate, originalSong) {
 
 function normalizeCandidate(candidate, originalSong, playlist, source = 'timelessq-search') {
   const singers = getSingerText(candidate)
+  const album = getCandidateAlbum(candidate)
 
   return {
     id: candidate?.songmid || `${playlist.id}-${originalSong.id}`,
@@ -76,27 +116,46 @@ function normalizeCandidate(candidate, originalSong, playlist, source = 'timeles
     songmid: candidate?.songmid || '',
     title: candidate?.songname || originalSong.title,
     artist: singers || originalSong.artist,
-    album: candidate?.albumname || originalSong.album || '',
-    cover: candidate?.albumcover || getFallbackCover(originalSong),
+    album: album || originalSong.album || '',
+    cover: candidate?.albumcover || getFallbackCover(candidate?.songname || originalSong.title, singers || originalSong.artist),
     source,
     playlistId: playlist.id,
     playlistName: playlist.name,
   }
 }
 
-export function getFallbackCover(song) {
-  return `https://picsum.photos/seed/${encodeURIComponent(`${song.title}-${song.artist}`)}/300/300`
+function buildUnavailableSong(originalSong, playlist, reason = 'fallback-song') {
+  return {
+    id: `${playlist.id}-${originalSong.id}`,
+    localKey: `${playlist.id}-${originalSong.id}`,
+    songmid: '',
+    title: originalSong.title,
+    artist: originalSong.artist,
+    album: originalSong.album || '',
+    cover: getFallbackCover(originalSong.title, originalSong.artist),
+    audioUrl: '',
+    source: reason,
+    playlistId: playlist.id,
+    playlistName: playlist.name,
+  }
+}
+
+export function getFallbackCover(title, artist) {
+  return `https://picsum.photos/seed/${encodeURIComponent(`${title}-${artist}`)}/300/300`
 }
 
 async function searchSongCandidates(song) {
   const url = `${SEARCH_API}?keyword=${encodeKeyword(song.title, song.artist)}&page=1&pageSize=10`
   const payload = await fetchJsonWithRetry(url)
   const list = payload?.data?.list
+
   if (!Array.isArray(list) || list.length === 0) {
     throw new Error('no search result')
   }
 
-  return [...list].sort((a, b) => scoreCandidate(b, song) - scoreCandidate(a, song)).slice(0, 6)
+  return list
+    .filter((candidate) => isStrictMatch(candidate, song))
+    .sort((a, b) => scoreStrictCandidate(b, song) - scoreStrictCandidate(a, song))
 }
 
 export async function resolveSongUrl(song) {
@@ -105,10 +164,11 @@ export async function resolveSongUrl(song) {
   }
 
   if (songUrlCache.has(song.songmid)) {
+    const cachedUrl = songUrlCache.get(song.songmid)
     return {
       ...song,
-      audioUrl: songUrlCache.get(song.songmid),
-      source: songUrlCache.get(song.songmid) ? 'timelessq-songUrl-cache' : `${song.source}-unplayable-cache`,
+      audioUrl: cachedUrl,
+      source: cachedUrl ? 'timelessq-songUrl-cache' : `${song.source}-unplayable-cache`,
     }
   }
 
@@ -117,6 +177,7 @@ export async function resolveSongUrl(song) {
   const audioUrl = data?.url || ''
   const playable = audioUrl && !UNPLAYABLE_URL_PATTERN.test(audioUrl)
   const finalUrl = playable ? audioUrl : ''
+
   songUrlCache.set(song.songmid, finalUrl)
 
   return {
@@ -127,56 +188,46 @@ export async function resolveSongUrl(song) {
 }
 
 export async function searchSong(song, playlist) {
-  const candidates = await searchSongCandidates(song)
+  const strictCandidates = await searchSongCandidates(song)
 
-  for (const candidate of candidates) {
+  if (strictCandidates.length === 0) {
+    return buildUnavailableSong(song, playlist, 'strict-match-not-found')
+  }
+
+  let bestMatchedSong = null
+
+  for (const candidate of strictCandidates.slice(0, 6)) {
     const normalized = normalizeCandidate(candidate, song, playlist)
     const resolved = await resolveSongUrl(normalized)
+
+    if (!bestMatchedSong) {
+      bestMatchedSong = resolved
+    }
+
     if (resolved.audioUrl) {
       return resolved
     }
   }
 
-  return normalizeCandidate(candidates[0], song, playlist, 'timelessq-search-no-playable-url')
+  return {
+    ...(bestMatchedSong || buildUnavailableSong(song, playlist, 'strict-match-no-playable-url')),
+    audioUrl: '',
+    source: bestMatchedSong ? `${bestMatchedSong.source}-no-playable-exact` : 'strict-match-no-playable-url',
+  }
 }
 
 export async function buildPlayableSongs(playlist, count = 5) {
-  const pool = [...playlist.fallbackSongs].sort(() => Math.random() - 0.5)
-  const playableResults = []
-  const fallbackResults = []
+  const picked = [...playlist.fallbackSongs]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count)
 
-  for (const song of pool) {
-    try {
-      const resolved = await searchSong(song, playlist)
-      const normalized = {
-        ...resolved,
-        cover: resolved.cover || getFallbackCover(song),
+  return Promise.all(
+    picked.map(async (song) => {
+      try {
+        return await searchSong(song, playlist)
+      } catch (error) {
+        return buildUnavailableSong(song, playlist)
       }
-
-      if (normalized.audioUrl) {
-        playableResults.push(normalized)
-      } else {
-        fallbackResults.push(normalized)
-      }
-    } catch (error) {
-      fallbackResults.push({
-        id: `${playlist.id}-${song.id}`,
-        localKey: `${playlist.id}-${song.id}`,
-        title: song.title,
-        artist: song.artist,
-        album: song.album,
-        cover: getFallbackCover(song),
-        audioUrl: '',
-        source: 'fallback-song',
-        playlistId: playlist.id,
-        playlistName: playlist.name,
-      })
-    }
-
-    if (playableResults.length >= count) {
-      break
-    }
-  }
-
-  return [...playableResults, ...fallbackResults].slice(0, count)
+    }),
+  )
 }
